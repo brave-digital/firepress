@@ -13,7 +13,7 @@
  * @package           Brave_Firepress
  *
  * @wordpress-plugin
- * Plugin Name:       Firepress
+ * Plugin Name:       Brave Firepress
  * Plugin URI:        http://www.bravedigital.com/firepress
  * Description:       Synchronises your posts with Firebase
  * Version:           1.0.0

@@ -287,7 +287,7 @@ class Brave_Firepress {
 		{
 			if (!empty($this->firebaseurl) && !empty($this->firebasekey))
 			{
-				$configfilename = plugin_dir_path(dirname(__FILE__)) . '/accounts/' . $this->firebasekey;
+				$configfilename = $this->get_key_path($this->firebasekey);
 
 				if (file_exists($configfilename))
 				{
@@ -356,6 +356,39 @@ class Brave_Firepress {
 		}
 
 	}
+
+	public function addPostTypeToSave($posttype)
+	{
+		$posttypestosave = get_option(Brave_Firepress::SETTING_POST_TYPES_TO_SAVE);
+
+		foreach ($posttypestosave as $pt)
+		{
+			if ($posttype === $pt) return;
+		}
+
+		$posttypestosave[] = $posttype;
+
+		update_option(Brave_Firepress::SETTING_POST_TYPES_TO_SAVE, $posttypestosave);
+		$this->posttypestosave = $posttypestosave;
+	}
+
+	public function removePostTypeToSave($posttype)
+	{
+		$posttypestosave = get_option(Brave_Firepress::SETTING_POST_TYPES_TO_SAVE);
+
+		$newposttypes = array();
+		foreach ($posttypestosave as $pt)
+		{
+			if ($posttype !== $pt)
+			{
+				$newposttypes[] = $pt;
+			}
+		}
+
+		update_option(Brave_Firepress::SETTING_POST_TYPES_TO_SAVE, $newposttypes);
+		$this->posttypestosave = $newposttypes;
+	}
+
 
 	public function get_database_path($posttype, $key)
 	{
@@ -496,7 +529,7 @@ class Brave_Firepress {
 	/**
 	 * Converts a post id to a small object which contains the post's ID and Slug so that the reference can be useful outside of Wordpress.
 	 * @param $postid
-	 * @return string
+	 * @return string|array
 	 */
 	protected function convert_postid_to_firebasepostid($postid)
 	{
@@ -527,9 +560,9 @@ class Brave_Firepress {
 	 * Expands a term object into a small array containing useful info about the term.
 	 * TODO: At a later stage this should be removed and FirePress should gather a list of taxonomies and store their terms in a list, rather than repeating them over and over inside each object.
 	 *
-	 * @param $term
+	 * @param $term - Can be a single term ID or an array of term IDs.
 	 * @param $taxonomy
-	 * @return array
+	 * @return array - Returns an associative object that represents the term - or an array of associative objects if an array was passed.
 	 */
 	protected function convert_term_to_firebaseterm($term, $taxonomy)
 	{
@@ -1063,6 +1096,16 @@ class Brave_Firepress {
 	 */
 	public function get_version() {
 		return $this->version;
+	}
+
+	public function get_key_path( $keyfile )
+	{
+		$path = trailingslashit(plugin_dir_path(dirname(__FILE__)) . DIRECTORY_SEPARATOR. 'accounts') . $keyfile;
+
+		if (empty($keyfile)) return $path;
+
+		if (strtolower(substr($path, -5, 5)) != '.json') $path .= '.json';
+		return $path;
 	}
 
 }

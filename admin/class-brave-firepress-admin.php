@@ -177,7 +177,7 @@ post_content_filtered";
 		add_settings_section($this->slug, __('FirePress Options', 'brave-firepress'), '__return_false', $this->settingspage);
 
 		$this->add_settings_field(Brave_Firepress::SETTING_FIREBASE_URL, __('Firebase URL', 'brave-firepress'), array('type' =>'text', 'classes' =>'code', 'description'=>__('The URL of your Firebase install, usually https://<b>your-app</b>.firebaseio.com/', 'brave-firepress')));
-		$this->add_settings_field(Brave_Firepress::SETTING_FIREBASE_KEY, __('Firebase Key', 'brave-firepress'), array('type' =>'file', 'classes' =>'code', 'description'=>__('The filename of the .json credentials file inside <code>wp-content/plugins/brave-firepress/accounts/</code>', 'brave-firepress')));
+		$this->add_settings_field(Brave_Firepress::SETTING_FIREBASE_KEY, __('Firebase Key', 'brave-firepress'), array('type' =>'filechoice', 'directory'=> $this->plugin->get_key_path(''), 'extensions'=>array('json'),'classes' =>'code', 'description'=>__('The filename of the .json credentials file inside <code>wp-content/plugins/brave-firepress/accounts/</code>', 'brave-firepress')));
 		$this->add_settings_field(Brave_Firepress::SETTING_DATABASE_BASEPATH, __('Database Base Path', 'brave-firepress'), array('type' =>'text', 'description' =>__('The Firebase database path under which FirePress will store all posts and pages', 'brave-firepress')));
 		$this->add_settings_field(Brave_Firepress::SETTING_POST_TYPES_TO_SAVE, __('Post Types To Save', 'brave-firepress'), array('type' =>'posttypes', 'label' =>__('Which post types to save to the Firebase database?', 'brave-firepress')));
 		$this->add_settings_field(Brave_Firepress::SETTING_POST_KEY_FIELD, __('Post Key Field', 'brave-firepress'), array('type' =>'select', 'choices'=>array('post_name'=>'Post Slug','ID'=>'Post ID', 'guid'=>'Post GUID'), 'description' =>__('Which field should FirePress use to reference posts in your database?', 'brave-firepress')));
@@ -297,6 +297,50 @@ post_content_filtered";
 				$html .= '<textarea class="regular-text '.$classes.'" id="'.$id.'" name="'.$id.'" placeholder="'.esc_attr($placeholder).'">'.esc_html($value).'</textarea>';
 			break;
 
+
+			case 'filechoice':
+
+				$filelist = scandir($args['directory']);
+
+				$choices = array();
+				foreach ($filelist as $file)
+				{
+					if ($file == '.' || $file == '..') continue;
+
+					$parts = explode('.', $file);
+
+					if (count($parts) == 1)
+					{
+						if (in_array('', $args['extensions']))
+						{
+							$choices[] = $file;
+						}
+					}
+					else
+					{
+					    if (in_array($parts[1], $args['extensions']))
+					    {
+					    	$choices[] = $file;
+					    }
+					}
+				}
+
+				if (empty($choices))
+				{
+
+					$html .= __('<p>There are no suitable files available.</p>', 'brave-firepress');
+				}
+				else
+				{
+					$html .= '<select class="'.$classes.'" id="'.$id.'" name="'.$id.'">';
+					foreach ($choices as $file)
+					{
+						$html .= '<option '.(esc_attr($file) == $value ? 'selected="selected"' : '').' value="'.esc_attr($file).'">'.$file.'</option>';
+					}
+					$html .= '</select>';
+				}
+
+				break;
 
 			case 'text': //This was done because when looking back at this function, sometimes you'll look for "case 'text':" and not realise that "default:" means the same thing.
 			default:
