@@ -1,0 +1,348 @@
+@import "bravesass";
+@import "braveplugin";
+
+$color-blue: #008ec2;
+$color-red: #ff4624;
+
+.remoteurlbox
+{
+
+	h2
+	{
+		margin-top: 0;
+	}
+
+	input
+	{
+		font-size: 14px;
+	}
+
+	padding: 12px;
+	margin: 0 -12px 0;
+	border-bottom: 1px solid #DDD;
+
+}
+
+.processors
+{
+	@include clearfix();
+	padding: 12px 0;
+
+}
+
+.processor
+{
+	float: left;
+	position: relative;
+	text-decoration: none;
+	display: inline-block;
+	padding: 12px 12px 12px 42px;
+	border: 1px solid #ddd;
+	margin: 5px;
+	@include box-shadow(0 1px 2px rgba(0,0,0,0.1));
+
+	&:focus
+	{
+		@include box-shadow(none);
+	}
+
+	&.selected
+	{
+		border-color: #0073aa;
+
+		.selector
+		{
+			background: #0073aa;
+		}
+	}
+
+	.selector
+	{
+		position: absolute;
+		left: 0;
+		width: 30px;
+		bottom: 0;
+		top: 0;
+		background: #eee;
+
+
+		input
+		{
+			position: relative;
+			transform: translate(-50%, -50%);
+			left: 50%;
+			top: 50%;
+			background: #FFF;
+
+		}
+	}
+
+	h3, p
+	{
+		margin: 0;
+	}
+}
+
+
+.boxfooter
+{
+	@include clearfix();
+	background-color: #fff;
+	border-top: 1px solid #ddd;
+	padding: 12px;
+	@include box-shadow(0 0 16px rgba(0,0,0,0.05) inset);
+	margin: 0 -12px -12px -12px;
+
+	.button-primary, .button-secondary
+	{
+		height: auto;
+		font-size: 16px;
+		padding: 2px 16px 5px;
+		font-weight: 600;
+		margin-left: 10px;
+		float: right;
+	}
+
+
+	p
+	{
+		margin: 0;
+		float: left;
+		line-height: 32px;
+	}
+}
+
+
+.statusbox
+{
+	@include clearfix();
+	background-color: #fff;
+	border: 1px solid #ddd;
+	padding: 12px;
+	@include box-shadow(0 0 16px rgba(0,0,0,0.05) inset);
+
+	h3
+	{
+		margin: 0.5em 0;
+		text-align: center;
+		font-size: 18px;
+	}
+
+
+}
+
+.progressbar
+{
+	$bar-height: 24px;
+	height: $bar-height;
+	line-height: $bar-height;
+
+	position: relative;
+
+	background: #eee;
+
+	@include box-shadow(0 0 16px rgba(0,0,0,0.05) inset);
+	@include border-radius(5px);
+	border: 1px solid rgba(0,0,0,0.2);
+	margin: 10px;
+
+
+	.bar
+	{
+		position: absolute;
+		background-color: $color-blue;
+		top: 0;
+		bottom: 0;
+		left: 0;
+		width: 20%;
+		border: 1px solid darken($color-blue, 5%);
+
+		@include border-radius(5px);
+	}
+
+	.percent
+	{
+		position: absolute;
+		z-index: 10;
+		top: 0;
+		bottom: 0;
+		left:0;
+		right: 0;
+		text-align: center;
+		color: rgba(0,0,0,0.55);
+		font-weight: 700;
+		@include text-shadow(0 -1px 0px rgba(255,255,255,0.1));
+
+	}
+
+
+}
+
+.error
+{
+	padding: 10px;
+	@include border-radius(5px);
+	background-color: lighten($color-red, 5%);
+	border: 1px solid $color-red;
+
+	color: #FFF;
+	@include text-shadow(0 1px 0px rgba(0,0,0,0.5));
+	margin: 0;
+}
+
+
+.resultsbox
+{
+	@include clearfix();
+
+	.results
+	{
+		white-space: pre;
+	}
+
+}
+
+.logbox
+{
+	textarea
+	{
+		display: block;
+		width: 100%;
+		height: 400px;
+	}
+}
+
+.welcomebox
+{
+	background-color: #d6ffa9;
+}
+
+.warningbox
+{
+	background-color: #ffeac8;
+	p
+	{
+		margin-bottom:0;
+	}
+}
+
+
+.welcomebox.stuffbox .inside
+{
+	font-size: 15px;
+}
+
+.changegroup
+{
+	padding-bottom: 10px;
+
+	.changeheading
+	{
+		padding: 10px 10px;
+		position: relative;
+
+		border: 1px solid #DDDDDD;
+
+		box-shadow: 0 0 4px rgba(0,0,0,0.1);
+
+		.small
+		{
+			font-size: 14px;
+			font-weight: 400;
+			color: #888;
+		}
+
+		h3
+		{
+			margin: 0;
+		}
+
+		.downarrow
+		{
+			position: absolute;
+			display: block;
+			right: 0;
+			font-size: 16px;
+
+			top: 50%;
+			transform: translate(0, -50%);
+
+			width: 40px;
+			text-align: center;
+			color: #23282D;
+			text-decoration: none;
+
+			&:active, &:focus
+			{
+				box-shadow: none;
+			}
+		}
+	}
+
+	&.collapsed
+	{
+		.changecontent
+		{
+			display: none;
+		}
+	}
+
+	.changecontent
+	{
+		table.widefat
+		{
+			border-top: none;
+		}
+	}
+}
+
+table
+{
+	.small-column
+	{
+		width: 24px;
+	}
+
+	.smallish-column
+	{
+		width: 64px;
+	}
+
+	.data-column
+	{
+		min-width: 160px;
+	}
+
+	.data-cell
+	{
+		white-space: pre;
+		font-family: 'Consolas', 'Courier New', Monospaced, sans-serif;
+		overflow: hidden;
+	}
+
+	.edit-mark
+	{
+		color: #0b87c2;
+		text-align: right;
+		display: block;
+		//width: 100%;
+	}
+
+	.create-mark
+	{
+		color: #57ae0d;
+		display: block;
+		//width: 100%;
+		text-align: right;
+	}
+
+	.delete-mark
+	{
+		color: #ff5300;
+		text-align: right;
+		//width: 100%;
+		display: block;
+	}
+
+}
+

@@ -1,0 +1,46 @@
+{
+    "name": "kreait/firebase-php",
+    "description": "A PHP client for the Google Firebase Realtime Database",
+    "keywords": ["firebase", "rest", "api", "http"],
+    "homepage": "https://github.com/kreait/firebase-php",
+    "license": "MIT",
+    "authors": [
+        {
+        "name": "Jérôme Gamez",
+        "homepage": "https://github.com/jeromegamez"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/kreait/firebase-php/issues",
+        "source": "https://github.com/kreait/firebase-php"
+    },
+    "require": {
+        "php": "^5.5|^7.0",
+        "ext-mbstring": "*",
+        "psr/log": "^1.0",
+        "egeloen/http-adapter": "^0.8|^1.0",
+        "mtdowling/jmespath.php": "^2.1",
+        "firebase/token-generator": "^3.0",
+        "google/apiclient": "^2.0"
+    },
+	"config":
+	{
+		"optimize-autoloader": true
+	},
+    "require-dev": {
+        "phpunit/phpunit": "^4.7|^5.0",
+        "symfony/event-dispatcher": "^2.7|^3.0",
+        "vlucas/phpdotenv": "^2.0",
+        "friendsofphp/php-cs-fixer": "^1.6",
+        "kreait/tape-recorder-subscriber": "^3.0"
+    },
+    "autoload": {
+        "psr-4": { "Kreait\\Firebase\\": "src/" }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-1.0": "1.x-dev",
+            "dev-2.0": "2.x-dev"
+        }
+    }
+}

@@ -1,0 +1,210 @@
+@mixin gradientbackground($c1, $c2)
+{
+	$c1old: rgb(red($c1), green($c1), blue($c1));
+
+	$c2old: rgb(red($c2), green($c2), blue($c2));
+
+	background: $c1old;  // Old browsers - Removes alpha if present.
+	background: -moz-linear-gradient(top, $c1old 0%, $c2old 100%);  // FF3.6+ */
+	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%, $c1), color-stop(100%, $c2));  // Chrome,Safari4+ */
+	background: -webkit-linear-gradient(top, $c1 0%, $c2 100%);  // Chrome10+,Safari5.1+ */
+	background: -o-linear-gradient(top, $c1 0%, $c2 100%);  // Opera 11.10+ */
+	background: -ms-linear-gradient(top, $c1 0%, $c2 100%);  // IE10+ */
+	background: linear-gradient(to bottom, $c1 0%, $c2 100%);  // W3C */
+//filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#{$c1old}', endColorstr='#{$c2old}',GradientType=0 );  // IE6-9 */
+}
+
+
+
+@mixin gradientbackground-horizontal($c1, $c2)
+{
+	background: rgb(red($c1), green($c1), blue($c1));  // Old browsers - Removes alpha if present.
+	background: -moz-linear-gradient(left, rgba($c1, 1) 0%, rgba($c2, 1) 100%);  // FF3.6+ */
+	background: -webkit-gradient(linear, left top, right top, color-stop(0%, $c1), color-stop(100%, $c2));  // Chrome,Safari4+ */
+	background: -webkit-linear-gradient(left, $c1 0%, $c2 100%);  // Chrome10+,Safari5.1+ */
+	background: -o-linear-gradient(left, $c1 0%, $c2 100%);  // Opera 11.10+ */
+	background: -ms-linear-gradient(left, $c1 0%, $c2 100%);  // IE10+ */
+	background: linear-gradient(to right, $c1 0%, $c2 100%);  // W3C */
+	filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#{$c1}', endColorstr='#{$c2}',GradientType=1 );  // IE6-9 */
+}
+
+@mixin box-shadow($shadow1, $shadow2:false, $shadow3:false, $shadow4:false, $shadow5:false)
+{
+	$params: $shadow1;
+	@if $shadow2
+	{ $params: $shadow1, $shadow2; }
+	@if $shadow3 != false
+	{ $params: $shadow1, $shadow2, $shadow3; }
+	@if $shadow4 != false
+	{ $params: $shadow1, $shadow2, $shadow3, $shadow4; }
+	@if $shadow5 != false
+	{ $params: $shadow1, $shadow2, $shadow3, $shadow4, $shadow5; }
+
+	-webkit-box-shadow: $params;
+	-moz-box-shadow: $params;
+	box-shadow: $params;
+
+}
+
+
+@mixin transition($t1, $t2:false, $t3:false, $t4:false, $t5:false)
+{
+	$params: $t1;
+	@if $t2
+	{ $params: $t1, $t2; }
+	@if $t3 != false
+	{ $params: $t1, $t2, $t3; }
+	@if $t4 != false
+	{ $params: $t1, $t2, $t3, $t4; }
+	@if $t5 != false
+	{ $params: $t1, $t2, $t3, $t4, $t5; }
+
+	-moz-transition: $params;
+	-webkit-transition: $params;
+	-ms-transition: $params;
+	-o-transition: $params;
+	transition: $params;
+}
+
+
+@mixin text-shadow($shadow1, $shadow2:false, $shadow3:false, $shadow4:false, $shadow5:false)
+{
+	$params: $shadow1;
+	@if $shadow2
+	{ $params: $shadow1, $shadow2; }
+	@if $shadow3 != false
+	{ $params: $shadow1, $shadow2, $shadow3; }
+	@if $shadow4 != false
+	{ $params: $shadow1, $shadow2, $shadow3, $shadow4; }
+	@if $shadow5 != false
+	{ $params: $shadow1, $shadow2, $shadow3, $shadow4, $shadow5; }
+
+	-webkit-text-shadow: $params;
+	-moz-text-shadow: $params;
+	text-shadow: $params;
+
+}
+
+@mixin notselectable
+{
+	-webkit-touch-callout: none;
+	-webkit-user-select: none; 
+	-moz-user-select: none; 
+	-ms-user-select: none;
+	-o-user-select: none;
+	user-select: none;
+}
+
+@mixin nofocusoutline
+{
+	outline: 0;
+}
+
+
+@mixin border-radius($rad)
+{
+	-webkit-border-radius: $rad;
+	-moz-border-radius: $rad;
+	border-radius: $rad;
+}
+
+@mixin standard-textbox-style
+{
+	border: 1px solid #e2e2e2;
+	background: #FFF;
+	padding: 0.5em 0.7em;
+	color: #888;
+	font-family: "Open Sans", Arial, sans-serif;
+	font-size: 15px;
+
+	@include box-shadow(0 1px 2px rgba(0, 0, 0, 0.07));
+}
+
+@mixin opacity($opacity:0.75) 
+{
+    filter:"alpha(opacity={$opacity * 100})";
+    -moz-opacity:$opacity;
+    -khtml-opacity: $opacity;
+    opacity: $opacity;
+}
+
+@mixin translate($x:0, $y:0)
+{
+	@if $x == 0 and $y != 0
+	{
+		-webkit-transform: translateY($y);
+		-ms-transform: translateY($y);
+		transform: translateY($y);
+	}
+	@else if $x != 0 and $y == 0
+	{
+		-webkit-transform: translateX($x);
+		-ms-transform: translateX($x);
+		transform: translateX($x);
+	}
+	@else
+	{
+		-webkit-transform: translate($x, $y);
+		-ms-transform: translate($x, $y);
+		transform: translate($x, $y);
+	}
+}
+
+@mixin rotate($degree:1deg) 
+{
+	-webkit-transform:rotate($degree);
+	-moz-transform:rotate($degree);
+}
+
+@mixin scale($ratio:1.5)
+{
+  -webkit-transform:scale($ratio);
+  -moz-transform:scale($ratio);
+  transform:scale($ratio);
+}
+
+@mixin radial-gradient($from: #000, $to: #FFF)
+{
+	background: $from;
+    background: -webkit-gradient(radial, 50% 10%, 0, 50% 10%, 1000, from($from), to($to));
+    background: -moz-radial-gradient(center top, $from 0%, $to 100%);
+}
+
+@mixin borderbox()
+{
+	-webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
+  -moz-box-sizing: border-box;    /* Firefox, other Gecko */
+  box-sizing: border-box;         /* Opera/IE 8+ */
+}
+
+
+@mixin clearfix() 
+{
+	&:after
+	{
+		visibility: hidden;
+		display: block;
+		font-size: 0;
+		content: " ";
+		clear: both;
+		height: 0;
+	}
+}
+
+
+
+@mixin vertical-align()
+{
+	position: relative;
+	top: 50%;
+	-webkit-transform: translateY(-50%);
+	-ms-transform: translateY(-50%);
+	transform: translateY(-50%);
+}
+
+@mixin center() {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	@include translate(-50%, -50%);
+}
