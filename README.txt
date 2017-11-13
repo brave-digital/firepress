@@ -36,11 +36,11 @@ https://github.com/brave-digital/firepress
  * Click the Generate New Private Key button at the bottom and download the .json file provided.
  * Upload your .json credential files to the wp-content/plugins/brave-firepress/accounts/ directory.
  * Go to the plugin's settings page and:
-	* Enter your Firebase install's URL - you can find it on your Real Time Database's page inside the Firebase console.
-	* Select your .json credential file from the dropdown provided after you've copied it into the plugin's /accounts/ directory.
-	* Select post types which you'd like to synchronise to your Firebae database.
-	* Select how you would like WordPress to synchronise your post types into your Firebase database.
-	* Save your settings. If all goes well, you should see a message informing you that your Firebase and WordPress installs are successfully connected together.
+    * Enter your Firebase install's URL - you can find it on your Real Time Database's page inside the Firebase console.
+    * Select your .json credential file from the dropdown provided after you've copied it into the plugin's /accounts/ directory.
+    * Select post types which you'd like to synchronise to your Firebae database.
+    * Select how you would like WordPress to synchronise your post types into your Firebase database.
+    * Save your settings. If all goes well, you should see a message informing you that your Firebase and WordPress installs are successfully connected together.
 
 == Frequently Asked Questions ==
 
