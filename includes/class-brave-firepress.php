@@ -41,8 +41,11 @@ class Brave_Firepress {
 	const SETTING_META_OPTION = "bfp_meta_option";
 	const SETTING_TERMS_OPTION = "bfp_terms_option";
 	const SETTING_EXCLUDED_POST_META_FIELDS = "bfp_excluded_post_meta_fields";
+	const SETTING_EXCLUDE_TRASH = "bfp_exclude_trash";
 
 	const OPTION_CONNECTED = "bfp_firepress_connected";
+
+	const CUSTOM_FIELD_POST_FIREBASE_KEY = '_bfp_firebasekey';
 
 	/**
 	 * The loader that's responsible for maintaining and registering all hooks that power
@@ -80,6 +83,7 @@ class Brave_Firepress {
 	protected $firebasekey;
 	protected $basepath;
 	protected $keyfield;
+	protected $excludetrash;
 
 	/** @var \Kreait\Firebase\Reference */
 	protected $basereference;
@@ -274,7 +278,8 @@ class Brave_Firepress {
 		$this->firebasekey = get_option(Brave_Firepress::SETTING_FIREBASE_KEY);
 		$this->firebaseurl = get_option(Brave_Firepress::SETTING_FIREBASE_URL);
 		$this->basepath    = trailingslashit(get_option(Brave_Firepress::SETTING_DATABASE_BASEPATH));
-		$this->keyfield    = get_option(Brave_Firepress::SETTING_POST_KEY_FIELD);
+		$this->keyfield    = 'ID'; //get_option(Brave_Firepress::SETTING_POST_KEY_FIELD);
+		$this->excludetrash = get_option(Brave_Firepress::SETTING_EXCLUDE_TRASH);
 
 
 		if (!is_array($posttypestosave))
@@ -363,7 +368,9 @@ class Brave_Firepress {
 
 		foreach ($posttypestosave as $pt)
 		{
-			if ($posttype === $pt) return;
+			if ($posttype === $pt) {
+				return;
+			}
 		}
 
 		$posttypestosave[] = $posttype;
@@ -494,7 +501,7 @@ class Brave_Firepress {
 	public function create_post_firebasekey($postid)
 	{
 
-		$keyfield = get_option(Brave_Firepress::SETTING_POST_KEY_FIELD, 'ID');
+		$keyfield = $this->keyfield;
 
 		$post = get_post($postid, ARRAY_A);
 
@@ -502,10 +509,15 @@ class Brave_Firepress {
 
 		$posttype = $post['post_type'];
 
+		$key = (isset($post[$keyfield]) ? $post[$keyfield] : '');
+
+		/*
+
+		Removed this logic. All keys will be henceforce identified by their wordpress post IDs or the overwritten .
+
 		//Get the keyfield for this post. This is usually the option set up in the FirePress settings page, but can be overwritten by the bfp_post_keyfield filter.
 		$keyfield = apply_filters("bfp_post_keyfield", $keyfield, $postid, $posttype);
 
-		$key = (isset($post[$keyfield]) ? $post[$keyfield] : '');
 
 
 		//If the key field is post_name then do post_name specific logic:
@@ -514,13 +526,13 @@ class Brave_Firepress {
 			//If the firebase db indexes posts by their slugs, then remove any potential "__trashed" suffixes that Wordpress adds when a post is trashed so that we can reference the correct key in the Firebase DB.
 			$key = preg_replace("/__trashed$/", "", $key);
 		}
-
+		*/
 
 		$key = apply_filters("bfp_post_key", $key, $postid, $posttype);
 
-		update_post_meta($postid, "_bfp_firebasekey", $key);
-		$this->log("create_post_firebasekey: Adding key ".$key." to post id ".$postid);
-		$this->log("create_post_firebasekey: Read back key is = ".$this->get_post_firebasekey($postid, false));
+		update_post_meta($postid, Brave_Firepress::CUSTOM_FIELD_POST_FIREBASE_KEY, $key);
+		//$this->log("create_post_firebasekey: Adding key ".$key." to post id ".$postid);
+		//$this->log("create_post_firebasekey: Read back key is = ".$this->get_post_firebasekey($postid, false));
 
 		return $key;
 	}
@@ -612,6 +624,9 @@ class Brave_Firepress {
 
 		//Initalise $thisdata by converting the WP_Post object into an associative array.
 		$thisdata = (array) $post;
+
+
+
 
 		if (in_array($thisdata['post_status'],  array('draft','auto-draft', 'pending', 'inherit'))) return false; //This post is not ready for human consuption. Ignore this until the post is published.
 

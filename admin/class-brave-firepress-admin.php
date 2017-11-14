@@ -32,6 +32,7 @@ class Brave_Firepress_Admin {
 	private $slug = 'brave-firepress';
 	private $hookname = 'settings_page_brave-firepress';
 	private $settingspage = 'firepress-settings';
+	private $settingsfields = array();
 
 	/**
 	 * Initialize the class and set its properties.
@@ -64,6 +65,8 @@ class Brave_Firepress_Admin {
 		$loader->add_action('admin_init', $this, 'init_settings');
 
 		add_action("wp_ajax_bfp_resync", array(&$this, 'ajax_resync'));
+		add_action("wp_ajax_bfp_export", array(&$this, 'ajax_export'));
+		add_action("wp_ajax_bfp_import", array(&$this, 'ajax_import'));
 	}
 
 
@@ -106,6 +109,7 @@ class Brave_Firepress_Admin {
 	private function add_settings_field($optionid, $title, $args = array('type'=>'text'))
 	{
 		$args = array_merge(array('id'=>$optionid), $args);
+		$this->settingsfields[] = $args;
 		add_settings_field($optionid, $title, array(&$this, 'settings_field_render'), $this->settingspage, $this->slug, $args);
 
 		if (isset($args['default']))
@@ -121,8 +125,8 @@ class Brave_Firepress_Admin {
 	{
 
 		$postfields = array(
-			"ID" => "ID",
-			"comment_count"  => "comment_count",
+		  "ID" => "ID",
+		  "comment_count"  => "comment_count",
 		  "comment_status"  => "comment_status",
 		  "filter"  => "filter",
 		  "guid"  => "guid",
@@ -173,13 +177,15 @@ post_content_filtered";
 		register_setting($this->slug, Brave_Firepress::SETTING_ACF_OPTION);
 		register_setting($this->slug, Brave_Firepress::SETTING_FIELD_MAPPINGS);
 		register_setting($this->slug, Brave_Firepress::SETTING_EXCLUDED_POST_META_FIELDS);
+		register_setting($this->slug, Brave_Firepress::SETTING_EXCLUDE_TRASH);
 
 		add_settings_section($this->slug, __('FirePress Options', 'brave-firepress'), '__return_false', $this->settingspage);
 
 		$this->add_settings_field(Brave_Firepress::SETTING_FIREBASE_URL, __('Firebase URL', 'brave-firepress'), array('type' =>'text', 'classes' =>'code', 'description'=>__('The URL of your Firebase install, usually https://<b>your-app</b>.firebaseio.com/', 'brave-firepress')));
-		$this->add_settings_field(Brave_Firepress::SETTING_FIREBASE_KEY, __('Firebase Key', 'brave-firepress'), array('type' =>'filechoice', 'directory'=> $this->plugin->get_key_path(''), 'extensions'=>array('json'),'classes' =>'code', 'description'=>__('The filename of the .json credentials file inside <code>wp-content/plugins/brave-firepress/accounts/</code>', 'brave-firepress')));
+		$this->add_settings_field(Brave_Firepress::SETTING_FIREBASE_KEY, __('Firebase Key', 'brave-firepress'), array('type' =>'filechoice', 'directory'=> $this->plugin->get_key_path(''), 'extensions'=>array('json'),'classes' =>'', 'description'=>__('The filename of the .json credentials file inside <code>wp-content/plugins/brave-firepress/accounts/</code>. You may have to refresh the page to see recent changes.', 'brave-firepress')));
 		$this->add_settings_field(Brave_Firepress::SETTING_DATABASE_BASEPATH, __('Database Base Path', 'brave-firepress'), array('type' =>'text', 'description' =>__('The Firebase database path under which FirePress will store all posts and pages', 'brave-firepress')));
 		$this->add_settings_field(Brave_Firepress::SETTING_POST_TYPES_TO_SAVE, __('Post Types To Save', 'brave-firepress'), array('type' =>'posttypes', 'label' =>__('Which post types to save to the Firebase database?', 'brave-firepress')));
+		$this->add_settings_field(Brave_Firepress::SETTING_EXCLUDE_TRASH, __('Exclude Trashed Posts', 'brave-firepress'), array('type' =>'check', 'label' =>__('Exclude trashed posts from Firebase?', 'brave-firepress'), 'description'=>__('If checked, trashed posts are physically removed from Firebase and recreated if they are restored.', 'brave-firepress')));
 		$this->add_settings_field(Brave_Firepress::SETTING_POST_KEY_FIELD, __('Post Key Field', 'brave-firepress'), array('type' =>'select', 'choices'=>array('post_name'=>'Post Slug','ID'=>'Post ID', 'guid'=>'Post GUID'), 'description' =>__('Which field should FirePress use to reference posts in your database?', 'brave-firepress')));
 		$this->add_settings_field(Brave_Firepress::SETTING_META_OPTION, __('Post Meta Fields', 'brave-firepress'), array('type' =>'select', 'choices'=>array('key'=>'Save post meta fields into the \'meta\' key', 'merge'=>'Merge post meta fields into the main key', 'off'=>'Do not save post meta fields'), 'description' =>__('Choose what happens to post meta fields when they are saved to Firebase.', 'brave-firepress')));
 		$this->add_settings_field(Brave_Firepress::SETTING_EXCLUDED_POST_META_FIELDS, __('Excluded Post Meta Fields', 'brave-firepress'), array('type' =>'textarea', 'default'=>$excludedfieldsdefault, 'description' =>__('A list of meta fields (post custom fields) to exclude from post data. Put each on a separate line.', 'brave-firepress')));
@@ -374,6 +380,69 @@ post_content_filtered";
 		header('Content-Type: application/json');
 		$plugin = $this->getPlugin();
 		$res = $plugin->resync();
+
+		echo json_encode($res);
+		wp_die();
+	}
+
+	public function ajax_export()
+	{
+		header('Content-Type: application/json');
+		$plugin = $this->getPlugin();
+
+		$res = array();
+		foreach ($this->settingsfields as $field)
+		{
+			$value = get_option($field['id']);
+
+			$res[$field['id']] = $value;
+		}
+
+		echo json_encode(json_encode($res));
+		wp_die();
+	}
+
+
+	public function ajax_import()
+	{
+		//header('Content-Type: application/json');
+		$plugin = $this->getPlugin();
+
+		$res = array('success'=>false, 'msg'=>'Unknown error.');
+
+		$import = array();
+
+		if (isset($_REQUEST['data']))
+		{
+
+			try
+			{
+
+				$import = json_decode(stripslashes($_REQUEST['data']), true);
+				if (!is_array($import)) throw new Exception("Invalid import data.");
+
+
+			}
+			catch(Exception $e)
+			{
+				$res['msg'] = 'Your imported data was not valid.';
+
+			}
+		}
+
+		if (count($import) > 0)
+		{
+			foreach ($this->settingsfields as $field)
+			{
+				if (isset($import[$field['id']]))
+				{
+					update_option($field['id'], $import[$field['id']]);
+				}
+			}
+
+			$res['success'] = true;
+			$res['msg'] = 'Import successful';
+		}
 
 		echo json_encode($res);
 		wp_die();

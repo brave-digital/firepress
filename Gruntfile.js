@@ -7,11 +7,6 @@ module.exports = function(grunt) {
 			options: {
 				banner: '/*! <%= pkg.name %> <%= grunt.template.today("yyyy-mm-dd") %> */\n',
 				beautify: true
-			},
-			compress: {
-				files: {
-					'admin/js/wordsync-admin.js': ['admin/js/src/**/*.js']
-				}
 			}
 		},
 		compass: {
@@ -41,12 +36,8 @@ module.exports = function(grunt) {
 			css: {
 				files: 'admin/scss/**/*.scss',
 				tasks: ['compass:dev']
-			},
-			js:
-			{
-				files: ['admin/js/src/**/*.js'],
-				tasks: ['uglify:compress']
 			}
+
 		},
 		pot: {
 			options: {
@@ -69,11 +60,11 @@ module.exports = function(grunt) {
 	grunt.loadNpmTasks('grunt-contrib-watch');
 	grunt.loadNpmTasks('grunt-pot');
 
-	grunt.registerTask('dist', ['pot', 'compass:dist','uglify:compress']);
+	grunt.registerTask('dist', ['pot', 'compass:dist']);
 	//grunt.registerTask('pot', ['pot']);
 
 	// Default task(s).
-	grunt.registerTask('default', ['compass:dist', 'uglify:compress','watch']);
+	grunt.registerTask('default', ['compass:dist','watch']);
 
 
 };

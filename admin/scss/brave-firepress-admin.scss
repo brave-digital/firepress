@@ -4,84 +4,6 @@
 $color-blue: #008ec2;
 $color-red: #ff4624;
 
-.remoteurlbox
-{
-
-	h2
-	{
-		margin-top: 0;
-	}
-
-	input
-	{
-		font-size: 14px;
-	}
-
-	padding: 12px;
-	margin: 0 -12px 0;
-	border-bottom: 1px solid #DDD;
-
-}
-
-.processors
-{
-	@include clearfix();
-	padding: 12px 0;
-
-}
-
-.processor
-{
-	float: left;
-	position: relative;
-	text-decoration: none;
-	display: inline-block;
-	padding: 12px 12px 12px 42px;
-	border: 1px solid #ddd;
-	margin: 5px;
-	@include box-shadow(0 1px 2px rgba(0,0,0,0.1));
-
-	&:focus
-	{
-		@include box-shadow(none);
-	}
-
-	&.selected
-	{
-		border-color: #0073aa;
-
-		.selector
-		{
-			background: #0073aa;
-		}
-	}
-
-	.selector
-	{
-		position: absolute;
-		left: 0;
-		width: 30px;
-		bottom: 0;
-		top: 0;
-		background: #eee;
-
-
-		input
-		{
-			position: relative;
-			transform: translate(-50%, -50%);
-			left: 50%;
-			top: 50%;
-			background: #FFF;
-
-		}
-	}
-
-	h3, p
-	{
-		margin: 0;
-	}
-}
 
 
 .boxfooter
@@ -202,14 +124,19 @@ $color-red: #ff4624;
 
 }
 
-.logbox
+.importexport
 {
 	textarea
 	{
-		display: block;
 		width: 100%;
-		height: 400px;
+		height: 300px;
+		margin-top: 1em;
+		display: none;
+
 	}
+
+
+
 }
 
 .welcomebox
@@ -230,70 +157,6 @@ $color-red: #ff4624;
 .welcomebox.stuffbox .inside
 {
 	font-size: 15px;
-}
-
-.changegroup
-{
-	padding-bottom: 10px;
-
-	.changeheading
-	{
-		padding: 10px 10px;
-		position: relative;
-
-		border: 1px solid #DDDDDD;
-
-		box-shadow: 0 0 4px rgba(0,0,0,0.1);
-
-		.small
-		{
-			font-size: 14px;
-			font-weight: 400;
-			color: #888;
-		}
-
-		h3
-		{
-			margin: 0;
-		}
-
-		.downarrow
-		{
-			position: absolute;
-			display: block;
-			right: 0;
-			font-size: 16px;
-
-			top: 50%;
-			transform: translate(0, -50%);
-
-			width: 40px;
-			text-align: center;
-			color: #23282D;
-			text-decoration: none;
-
-			&:active, &:focus
-			{
-				box-shadow: none;
-			}
-		}
-	}
-
-	&.collapsed
-	{
-		.changecontent
-		{
-			display: none;
-		}
-	}
-
-	.changecontent
-	{
-		table.widefat
-		{
-			border-top: none;
-		}
-	}
 }
 
 table

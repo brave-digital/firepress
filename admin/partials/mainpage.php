@@ -77,11 +77,25 @@
 				?>
 			</form>
 
+			<div class="importexport">
+				<h3>Import or Export Settings</h3>
+
+				<a href="#" class="button-secondary button btn-showimport">Import Settings</a>
+				<a href="#" class="button-secondary button btn-export">Export Settings</a>
+				<br/>
+				<textarea class="code txt-import">
+
+				</textarea>
+
+			</div>
+
 
 			<div class="">
 				<h3>Sync Firebase with your data</h3>
-				<p class="warning">This will DELETE your entire <code><?php echo get_option(Brave_Firepress::SETTING_DATABASE_BASEPATH, '/');?></code> key in FireBase and refresh it from your entire WordPress database. Please double check that the key is correct before proceeding. This could take a while.</p>
-				<a href="#" class="button-primary button btn-resyncfirebase">Sync Firebase</a>
+				<p class="statusbox warningbox">This will DELETE your entire <code><?php echo get_option(Brave_Firepress::SETTING_DATABASE_BASEPATH, '/');?></code> key in FireBase and refresh it from your entire WordPress database. Please double check that the key is correct before proceeding. This could take a while.
+				<br/><br/>
+				<a href="#" class="button-primary button btn-resyncfirebase">Delete and Sync Firebase</a>
+				</p>
 				<p class="sync-output"></p>
 			</div>
 
