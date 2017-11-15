@@ -14,15 +14,7 @@
 	/** @var Brave_Firepress_Admin $pluginadmin */
 	$pluginadmin = $GLOBALS['firepress_admin']; //Set in the class-wordsync-admin.php file just before this file is included.
 
-	// check if the user have submitted the settings
-	// wordpress will add the "settings-updated" $_GET parameter to the url
-	if (isset($_GET['settings-updated']))
-	{
-		//Clear the clean setup flag because we've changed settings and dont know yet if they work.
-		$pluginadmin->getPlugin()->clear_setup_flag();
-		// add settings saved message with the class of "updated"
-		add_settings_error('firepress_messages', 'firepress_messages', __('Settings Saved', 'brave-firepress'), 'updated');
-	}
+
 
 ?>
 <div class="wrap">

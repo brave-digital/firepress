@@ -171,22 +171,26 @@ post_content_filtered";
 		register_setting($this->slug, Brave_Firepress::SETTING_FIREBASE_KEY);
 		register_setting($this->slug, Brave_Firepress::SETTING_DATABASE_BASEPATH);
 		register_setting($this->slug, Brave_Firepress::SETTING_POST_TYPES_TO_SAVE);
-		register_setting($this->slug, Brave_Firepress::SETTING_POST_KEY_FIELD);
+		register_setting($this->slug, Brave_Firepress::SETTING_TAXONOMIES_TO_SAVE);
+		//register_setting($this->slug, Brave_Firepress::SETTING_POST_KEY_FIELD);
 		register_setting($this->slug, Brave_Firepress::SETTING_META_OPTION);
 		register_setting($this->slug, Brave_Firepress::SETTING_TERMS_OPTION);
 		register_setting($this->slug, Brave_Firepress::SETTING_ACF_OPTION);
 		register_setting($this->slug, Brave_Firepress::SETTING_FIELD_MAPPINGS);
 		register_setting($this->slug, Brave_Firepress::SETTING_EXCLUDED_POST_META_FIELDS);
 		register_setting($this->slug, Brave_Firepress::SETTING_EXCLUDE_TRASH);
+		register_setting($this->slug, Brave_Firepress::SETTING_ARRAY_STYLE);
 
 		add_settings_section($this->slug, __('FirePress Options', 'brave-firepress'), '__return_false', $this->settingspage);
 
 		$this->add_settings_field(Brave_Firepress::SETTING_FIREBASE_URL, __('Firebase URL', 'brave-firepress'), array('type' =>'text', 'classes' =>'code', 'description'=>__('The URL of your Firebase install, usually https://<b>your-app</b>.firebaseio.com/', 'brave-firepress')));
 		$this->add_settings_field(Brave_Firepress::SETTING_FIREBASE_KEY, __('Firebase Key', 'brave-firepress'), array('type' =>'filechoice', 'directory'=> $this->plugin->get_key_path(''), 'extensions'=>array('json'),'classes' =>'', 'description'=>__('The filename of the .json credentials file inside <code>wp-content/plugins/brave-firepress/accounts/</code>. You may have to refresh the page to see recent changes.', 'brave-firepress')));
-		$this->add_settings_field(Brave_Firepress::SETTING_DATABASE_BASEPATH, __('Database Base Path', 'brave-firepress'), array('type' =>'text', 'description' =>__('The Firebase database path under which FirePress will store all posts and pages', 'brave-firepress')));
+		$this->add_settings_field(Brave_Firepress::SETTING_DATABASE_BASEPATH, __('Database Base Path', 'brave-firepress'), array('type' =>'text', 'description' =>__('The Firebase database path under which FirePress will store all data. Include a trailing slash ("/").', 'brave-firepress')));
 		$this->add_settings_field(Brave_Firepress::SETTING_POST_TYPES_TO_SAVE, __('Post Types To Save', 'brave-firepress'), array('type' =>'posttypes', 'label' =>__('Which post types to save to the Firebase database?', 'brave-firepress')));
+		$this->add_settings_field(Brave_Firepress::SETTING_TAXONOMIES_TO_SAVE, __('Taxonomies To Save', 'brave-firepress'), array('type' =>'taxonomies', 'label' =>__('Which taxonomies to save to the Firebase database?', 'brave-firepress')));
 		$this->add_settings_field(Brave_Firepress::SETTING_EXCLUDE_TRASH, __('Exclude Trashed Posts', 'brave-firepress'), array('type' =>'check', 'label' =>__('Exclude trashed posts from Firebase?', 'brave-firepress'), 'description'=>__('If checked, trashed posts are physically removed from Firebase and recreated if they are restored.', 'brave-firepress')));
-		$this->add_settings_field(Brave_Firepress::SETTING_POST_KEY_FIELD, __('Post Key Field', 'brave-firepress'), array('type' =>'select', 'choices'=>array('post_name'=>'Post Slug','ID'=>'Post ID', 'guid'=>'Post GUID'), 'description' =>__('Which field should FirePress use to reference posts in your database?', 'brave-firepress')));
+		$this->add_settings_field(Brave_Firepress::SETTING_ARRAY_STYLE, __('Prefered Array Style', 'brave-firepress'), array('type' =>'select', 'choices'=>array('default'=>'Default', 'keyed'=> 'Keyed'), 'description'=>__('Choose how sequential arrays are sent to Firebase. Either as <i>Default</i>: <code>{0:apple, 1:pear, 2:orange}</code> or <i>Keyed</i>: <code>{apple:true, pear:true, orange:true}</code>.', 'brave-firepress')));
+		//$this->add_settings_field(Brave_Firepress::SETTING_POST_KEY_FIELD, __('Post Key Field', 'brave-firepress'), array('type' =>'select', 'choices'=>array('post_name'=>'Post Slug','ID'=>'Post ID', 'guid'=>'Post GUID'), 'description' =>__('Which field should FirePress use to reference posts in your database?', 'brave-firepress')));
 		$this->add_settings_field(Brave_Firepress::SETTING_META_OPTION, __('Post Meta Fields', 'brave-firepress'), array('type' =>'select', 'choices'=>array('key'=>'Save post meta fields into the \'meta\' key', 'merge'=>'Merge post meta fields into the main key', 'off'=>'Do not save post meta fields'), 'description' =>__('Choose what happens to post meta fields when they are saved to Firebase.', 'brave-firepress')));
 		$this->add_settings_field(Brave_Firepress::SETTING_EXCLUDED_POST_META_FIELDS, __('Excluded Post Meta Fields', 'brave-firepress'), array('type' =>'textarea', 'default'=>$excludedfieldsdefault, 'description' =>__('A list of meta fields (post custom fields) to exclude from post data. Put each on a separate line.', 'brave-firepress')));
 		$this->add_settings_field(Brave_Firepress::SETTING_TERMS_OPTION, __('Post Terms Fields', 'brave-firepress'), array('type' =>'select', 'choices'=>array('key'=>'Save post terms fields into the \'terms\' key', 'merge'=>'Merge post terms fields into the main key', 'off'=>'Do not save post terms fields'), 'description' =>__('Choose what happens to post meta fields when they are saved to Firebase.', 'brave-firepress')));
@@ -198,6 +202,15 @@ post_content_filtered";
 
 		$this->add_settings_field(Brave_Firepress::SETTING_FIELD_MAPPINGS, __('Field Mappings', 'brave-firepress'), array('type' =>'keyvalue','choices'=>$postfields, 'default'=>$postfields, 'label' =>__('Enter in what each field should be converted to in the Firebase database: (Leave an entry blank to exclude a specific field)', 'brave-firepress'), 'description'=>__('Leave an entry blank to exclude a specific field','brave-firepress')));
 
+
+		// check if the user have submitted the settings
+		// wordpress will add the "settings-updated" $_GET parameter to the url
+		if (isset($_GET['settings-updated']) && $_GET['settings-updated'])
+		{
+			//Clear the clean setup flag because we've changed settings and dont know yet if they work.
+			$this->plugin->after_settings_changed();
+
+		}
 
 	}
 
@@ -298,6 +311,29 @@ post_content_filtered";
 
 
 				break;
+
+			case 'taxonomies':
+
+
+				$taxes = get_taxonomies(array('public'=>true), 'objects');
+
+				$html .= '<fieldset class="'.$classes.'">';
+				if (!empty($label)) $html .= '<p class="description">'.$label.'</p>';
+
+				foreach ($taxes as $tax)
+				{
+					$thisvalue = $tax->name;
+					$checked = is_array($value) && in_array($thisvalue, $value);
+					$caption = $tax->label;
+					$meta = implode(', ', $tax->object_type);
+					$html .= '<label><input id="'.$id.'_'.$thisvalue.'" value="'.$thisvalue.'" name="'.$id.'[]" type="checkbox" '.($checked ? 'checked="checked"' : '').'/> <span style="min-width:18em; display:inline-block;">'.$caption.' <small>('.$meta.')</small></span><code>'.$thisvalue.'</code></label><br/>';
+				}
+
+				$html .= '</fieldset>';
+
+
+				break;
+
 
 			case 'textarea':
 				$html .= '<textarea class="regular-text '.$classes.'" id="'.$id.'" name="'.$id.'" placeholder="'.esc_attr($placeholder).'">'.esc_html($value).'</textarea>';
