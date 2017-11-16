@@ -38,7 +38,8 @@ class Brave_Firepress {
 	const SETTING_TAXONOMIES_TO_SAVE = "bfp_taxonomies_to_save";
 	const SETTING_POST_KEY_FIELD = "bfp_post_key_field";
 	const SETTING_ARRAY_STYLE = "bfp_array_style";
-	const SETTING_FIELD_MAPPINGS = "bfp_field_mappings";
+	const SETTING_POST_FIELD_MAPPINGS = "bfp_field_mappings";
+	const SETTING_TERM_FIELD_MAPPINGS = "bfp_term_field_mappings";
 	const SETTING_ACF_OPTION = "bfp_acf_option";
 	const SETTING_META_OPTION = "bfp_meta_option";
 	const SETTING_TERMS_OPTION = "bfp_terms_option";
@@ -64,23 +65,8 @@ class Brave_Firepress {
 	 */
 	protected $loader;
 
-	/**
-	 * The unique identifier of this plugin.
-	 *
-	 * @since    1.0.0
-	 * @access   protected
-	 * @var      string    $plugin_name    The string used to uniquely identify this plugin.
-	 */
-	protected $plugin_name;
-
-	/**
-	 * The current version of the plugin.
-	 *
-	 * @since    1.0.0
-	 * @access   protected
-	 * @var      string    $version    The current version of the plugin.
-	 */
-	protected $version;
+	protected $plugin_name = 'brave-firepress';
+	protected $version = '1.5.0';
 
 	/** @var Brave_Firepress_Admin */
 	protected $admin;
@@ -118,9 +104,6 @@ class Brave_Firepress {
 	 */
 	public function __construct() {
 
-		$this->plugin_name = 'brave-firepress';
-		$this->version = '1.0.0';
-
 		$this->load_dependencies();
 		$this->loader = new Brave_Firepress_Loader();
 
@@ -138,10 +121,11 @@ class Brave_Firepress {
 		$this->admin = new Brave_Firepress_Admin($this);
 
 		$this->loader->add_action('init', $this, 'after_loaded');
-		$this->loader->add_action('wp_insert_post', $this, 'send_post_to_firebase', 100, 3);
-		$this->loader->add_action('before_delete_post', $this, 'delete_post_from_firebase', 10, 1);
-		$this->loader->add_action('edited_terms', $this, 'send_term_to_firebase', 100, 2);
-		$this->loader->add_action('delete_term', $this, 'delete_term_from_firebase', 100, 4);
+		$this->loader->add_action('wp_insert_post', $this, 'send_post_to_firebase', 9999, 3);
+		$this->loader->add_action('before_delete_post', $this, 'delete_post_from_firebase', 9999, 1);
+		$this->loader->add_action('created_term', $this, 'send_term_to_firebase', 9999, 3);
+		$this->loader->add_action('edited_term', $this, 'send_term_to_firebase', 9999, 3);
+		$this->loader->add_action('delete_term', $this, 'delete_term_from_firebase', 9999, 4);
 
 		$this->loader->add_action('admin_notices', $this, 'admin_notices');
 	}
@@ -457,8 +441,28 @@ class Brave_Firepress {
 		$this->taxonomiestosave = $newtaxs;
 	}
 
+	/**
+	 * Returns a string with the full path of the path elements passed.
+	 *
+	 * Splat operator (...) is available in PHP 5.6 +
+	 * @param array ...$elements
+	 *
+	 * @return string
+	 */
+	public function get_database_path(...$elements)
+	{
+		$path = untrailingslashit($this->basepath);
 
-	public function get_database_path($posttype, $key, $isterm = false)
+		foreach ($elements as $el)
+		{
+			$path .= '/' . $el;
+		}
+
+		return $path;
+	}
+
+
+	public function get_post_database_path($posttype, $key, $isterm = false)
 	{
 		return trailingslashit($this->basepath). ($isterm ? $this::PATH_TERMS : $this::PATH_POSTS) .'/' . $posttype . '/'. $key;
 	}
@@ -473,7 +477,7 @@ class Brave_Firepress {
 
 	public function delete_key($posttype, $key, $isterm = false)
 	{
-		$path = $this->get_database_path($posttype, $key, $isterm);
+		$path = $this->get_post_database_path($posttype, $key, $isterm);
 
 		return ($this->firebase->delete($path) == 200);
 	}
@@ -573,7 +577,7 @@ class Brave_Firepress {
 		if ($createifdoesntexist && empty($key))
 		{
 			$this->log("Key doesnt exist! So I'm creating a new one.");
-			$key = $this->create_post_firebasekey($termid, $taxonomy);
+			$key = $this->create_term_firebasekey($termid, $taxonomy);
 		}
 
 		return $key;
@@ -700,7 +704,7 @@ class Brave_Firepress {
 
 		if (in_array($thisdata['post_status'],  array('draft','auto-draft', 'pending', 'inherit', 'trash')))
 		{
-			$existingkey = $this->get_database_path($posttype, $key);
+			$existingkey = $this->get_post_database_path($posttype, $key);
 			if ($this->firebase->exists($existingkey)) //If this post is on firebase then remove it.
 			{
 				$this->delete_post_from_firebase($postid);
@@ -720,7 +724,7 @@ class Brave_Firepress {
 		$acfoption = get_option(Brave_Firepress::SETTING_ACF_OPTION, 'key');
 		$termsoption = get_option(Brave_Firepress::SETTING_TERMS_OPTION, 'key');
 
-		$map = get_option(Brave_Firepress::SETTING_FIELD_MAPPINGS, array());
+		$map = get_option(Brave_Firepress::SETTING_POST_FIELD_MAPPINGS, array());
 
 
 
@@ -767,6 +771,11 @@ class Brave_Firepress {
 				}
 			}
 			$thisdata = $newthisdata;
+		}
+		else
+		{
+			//If no mapping exist, just fill in some defaults so that the code can operate correctly.
+			$map = array('fields'=>'fields', 'meta' => 'meta', 'terms'=>'terms');
 		}
 
 
@@ -918,7 +927,7 @@ class Brave_Firepress {
 
 		//# Actual saving to FireBase:
 
-		$thispath = $this->get_database_path($posttype, $key, false);
+		$thispath = $this->get_post_database_path($posttype, $key, false);
 
 			try
 			{
@@ -960,8 +969,6 @@ class Brave_Firepress {
 
 	public function delete_post_from_firebase($postid)
 	{
-		$this->log("delete_post: Got request to delete post ".$postid. ".");
-
 		$posttype = get_post_field('post_type', $postid, 'raw');
 
 		if (in_array($posttype, $this->posttypestosave))
@@ -991,7 +998,7 @@ class Brave_Firepress {
 
 				try
 				{
-					$res = $this->firebase->delete($this->get_database_path($posttype, $key));
+					$res = $this->firebase->delete($this->get_post_database_path($posttype, $key));
 
 					if ($res < 300)
 					{
@@ -1018,7 +1025,7 @@ class Brave_Firepress {
 	}
 
 
-	public function send_term_to_firebase($termid, $taxonomy)
+	public function send_term_to_firebase($termid, $tt_id, $taxonomy)
 	{
 		/** @var WPDB $wpdb */
 		global $wpdb;
@@ -1039,6 +1046,7 @@ class Brave_Firepress {
 			return false;
 		}
 
+
 		//Get the FireBase key under which we are going to store this post in Firebase:
 		$key = $this->create_term_firebasekey($termid, $taxonomy);
 
@@ -1046,10 +1054,13 @@ class Brave_Firepress {
 
 		//Remove unwanted fields:
 		unset($thisdata['term_taxonomy_id']);
+		unset($thisdata['taxonomy']);
+		unset($thisdata['filter']);
 
 
 		$metaoption = get_option(Brave_Firepress::SETTING_META_OPTION, 'key');
 		$acfoption = get_option(Brave_Firepress::SETTING_ACF_OPTION, 'key');
+		$map = get_option(Brave_Firepress::SETTING_TERM_FIELD_MAPPINGS, array());
 
 		//Convert a term id into something more usable outside of Wordpress.
 		if ($thisdata['parent'] > 0)
@@ -1059,9 +1070,9 @@ class Brave_Firepress {
 
 
 
-		/*
+
 		//Remap fields according to field mappings:
-		//WARNING If any fields are NOT specified in the map array in class-brave-firepress-admin.php:121, then they will get deleted here!
+		//WARNING If any fields are NOT specified in the map array in class-brave-firepress-admin.php:159, then they will get deleted here!
 		if (count($map) > 0)
 		{
 			$newthisdata = array();
@@ -1074,7 +1085,7 @@ class Brave_Firepress {
 			}
 			$thisdata = $newthisdata;
 		}
-		*/
+
 
 
 		//# Meta Data Storing:
@@ -1102,7 +1113,8 @@ class Brave_Firepress {
 		{
 			//ACF Support:
 
-			$fields = get_field_objects($termid, false);
+			$acfid = $taxonomy.'_'.$termid;
+			$fields = get_field_objects($acfid, false);
 
 			//$this->log("ACF Fields: ", $fields);
 			if ($fields !== false)
@@ -1128,12 +1140,12 @@ class Brave_Firepress {
 							break;
 
 						case 'file':
-							$fielddata[$fieldname] = acf_format_value($field['value'], $postid, $field);
+							$fielddata[$fieldname] = acf_format_value($field['value'], $acfid, $field);
 
 							break;
 
 						case 'image':
-							$fielddata[$fieldname] = acf_format_value($field['value'], $postid, $field);
+							$fielddata[$fieldname] = acf_format_value($field['value'], $acfid, $field);
 
 							break;
 
@@ -1153,7 +1165,7 @@ class Brave_Firepress {
 				else
 				{
 					//Create a subkey:
-					$thisdata[$map['fields']] = $fielddata;
+					$thisdata[(isset($map['fields']) ? $map['fields'] : 'fields')] = $fielddata;
 				}
 			}
 
@@ -1169,46 +1181,7 @@ class Brave_Firepress {
 			else
 			{
 				//Create a subkey:
-				$thisdata[$map['meta']] = $metadata;
-			}
-		}
-
-
-
-		if ($termsoption != 'off')
-		{
-			//Store this post's taxonomy terms
-
-			$taxs = get_object_taxonomies($posttype);
-			$termsdata = array();
-
-			foreach ($taxs as $tax)
-			{
-				$terms = wp_get_post_terms($postid, $tax);
-				//$this->log("Post id ".$postid." has ".count($terms)." terms in the ".$tax." taxonomy.");
-				if (count($terms) > 0)
-				{
-					$termsdata[$tax] = array();
-
-					foreach ($terms as $term)
-					{
-						$termsdata[$tax][] = $this->get_term_firebasekey($term->term_id, $tax);
-					}
-
-					$termsdata[$tax] = $this->prepare_array($termsdata[$tax]);
-				}
-
-			}
-
-			if ($termsoption == 'merge')
-			{
-				//Merge the meta data directly into the key:
-				$thisdata = array_merge($thisdata, $termsdata);
-			}
-			else
-			{
-				//Create a subkey:
-				$thisdata[$map['terms']] = $termsdata;
+				$thisdata[(isset($map['meta']) ? $map['meta'] : 'meta')] = $metadata;
 			}
 		}
 
@@ -1218,48 +1191,37 @@ class Brave_Firepress {
 		//Key cannot be empty.
 		if (empty($key))
 		{
-			$this->logError('Error trying to save post '.$postid. ' to Firebase: Key field was empty or not found!', $thisdata);
-			$this->setAdminNoticeError('Error trying to save post '.$postid. ' to Firebase: Key field was empty or not found!');
+			$this->logError('Error trying to save term '.$termid. ' to Firebase: Key field was empty or not found!', $thisdata);
+			$this->setAdminNoticeError('Error trying to save term '.$termid. ' to Firebase: Key field was empty or not found!');
 			return false;
 		}
 
 		//# Actual saving to FireBase:
 
-		$thispath = $this->get_database_path($posttype, $key);
+		$thispath = $this->get_post_database_path($taxonomy, $key, true);
 
 		try
 		{
 
-			//$existing = $this->firebase->exists($thispath);
-			//$this->log("Retrieving any existing data at ".$thispath, $existing);
-
-			if ($isupdate)
-			{
-				$this->log("Updating firebase. Updating key ".$thispath);
-				$res = $this->firebase->update($thisdata, $thispath);
-			}
-			else
-			{
-				$this->log("Updating firebase. Setting key ".$thispath);
-				$res = $this->firebase->set($thisdata, $thispath);
-			}
+			$this->log("Updating firebase. Setting key ".$thispath);
+			$res = $this->firebase->set($thisdata, $thispath);
 
 			if ($res < 300)
 			{
-				$this->setAdminNoticeSuccess('Post saved to Firebase.');
+				$this->setAdminNoticeSuccess('Term saved to Firebase.');
 			}
 			else
 			{
-				$this->logError('Error trying to save post '.$postid. ' to Firebase: HTTP Status '.$res.' returned.');
+				$this->logError('Error trying to save term '.$termid. ' to Firebase: HTTP Status '.$res.' returned.');
 
-				$this->setAdminNoticeError('Error trying to save post '.$postid. ' to Firebase: HTTP Status '.$res.' returned.');
+				$this->setAdminNoticeError('Error trying to save term '.$termid. ' to Firebase: HTTP Status '.$res.' returned.');
 			}
 		}
 		catch (Exception $e)
 		{
-			$this->logError('Error trying to save post '.$postid. ' to Firebase: '. $e->getMessage());
+			$this->logError('Error trying to save term '.$termid. ' to Firebase: '. $e->getMessage());
 
-			$this->setAdminNoticeError('Error trying to save post '.$postid. ' to Firebase: '. $e->getMessage());
+			$this->setAdminNoticeError('Error trying to save term '.$termid. ' to Firebase: '. $e->getMessage());
 		}
 
 		return true;
@@ -1267,6 +1229,60 @@ class Brave_Firepress {
 
 	public function delete_term_from_firebase($termid, $term_taxonomy_id, $term)
 	{
+		$this->log("delete_term: Got request to delete term ".$termid. ".");
+
+		$taxonomy = $term->taxonomy;
+
+		if (in_array($taxonomy, $this->taxonomiestosave))
+		{
+			$this->log("delete_term: Got request to delete term ".$termid. " which is taxonomy ".$taxonomy);
+
+
+			if (!$this->isSetup)
+			{
+				//$this->setAdminNoticeError('Error trying to remove post: FirePress is not setup!');
+				$this->log("Firepress isnt setup. Unable to delete term ".$termid." from Firebase.");
+				return;
+			}
+
+			if (!apply_filters("bfp_should_delete_term", true, $termid, $taxonomy))
+			{
+				$this->log("Aborted deleting term ". $termid." from Firebase because of a filter running on bfp_should_delete_term.");
+				return;
+			}
+
+			$this->log("delete_post: About to get key for term ".$termid);
+			//Get the FireBase key under which we should look to delete this post in Firebase: NOTE the false argument which means dont try
+			$key = $this->get_term_firebasekey($termid, false);
+
+			if (!empty($key))
+			{
+
+				try
+				{
+					$res = $this->firebase->delete($this->get_post_database_path($taxonomy, $key, true));
+
+					if ($res < 300)
+					{
+						$this->setAdminNoticeSuccess('Term has been removed from Firebase.');
+
+						do_action("bfp_term_deleted", $termid, $key);
+					}
+					else
+					{
+						$this->setAdminNoticeError('Error trying to remove term '.$termid. ' from Firebase: HTTP Status '.$res.' returned.');
+					}
+				}
+				catch (Exception $e)
+				{
+					$this->setAdminNoticeError('Error trying to remove term '.$termid. ' from Firebase: '. $e->getMessage());
+				}
+			}
+			else
+			{
+				$this->setAdminNoticeError('Error trying to remove term '.$termid. ' from Firebase: Key field was empty or not found!');
+			}
+		}
 
 	}
 

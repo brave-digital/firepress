@@ -35,10 +35,11 @@ $messageoffset: -212px;
 {
 	&.fullheader
 	{
-		margin: -10px -20px 0 -22px;
+		//margin: -10px -20px 0 -22px;
 		background-color: #333;
 		padding: 15px 20px;
 		color:#FFF;
+		display: inline-block;
 	}
 
 	.maintitle

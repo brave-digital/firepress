@@ -103,7 +103,7 @@ class Brave_Firepress_Admin {
 
 	public function create_menu()
 	{
-		add_submenu_page($this->adminpage, "FirePress", "FirePress Settings", 'manage_options', $this->slug, array(&$this, 'render_admin_page'));
+		add_submenu_page($this->adminpage, "FirePress", "FirePress", 'manage_options', $this->slug, array(&$this, 'render_admin_page'));
 	}
 
 	private function add_settings_field($optionid, $title, $args = array('type'=>'text'))
@@ -156,6 +156,16 @@ class Brave_Firepress_Admin {
 			"image" => "image",
 		);
 
+		$termfields = array(
+			"term_id" => "term_id",
+			"count"  => "count",
+			"description"  => "description",
+			"name"  => "name",
+			"parent"  => "parent",
+			"slug"  => "slug",
+			"term_group"  => "term_group",
+		);
+
 		$excludedfieldsdefault = "ping_status
 post_type
 post_mime_type
@@ -176,7 +186,8 @@ post_content_filtered";
 		register_setting($this->slug, Brave_Firepress::SETTING_META_OPTION);
 		register_setting($this->slug, Brave_Firepress::SETTING_TERMS_OPTION);
 		register_setting($this->slug, Brave_Firepress::SETTING_ACF_OPTION);
-		register_setting($this->slug, Brave_Firepress::SETTING_FIELD_MAPPINGS);
+		register_setting($this->slug, Brave_Firepress::SETTING_POST_FIELD_MAPPINGS);
+		register_setting($this->slug, Brave_Firepress::SETTING_POST_FIELD_MAPPINGS);
 		register_setting($this->slug, Brave_Firepress::SETTING_EXCLUDED_POST_META_FIELDS);
 		register_setting($this->slug, Brave_Firepress::SETTING_EXCLUDE_TRASH);
 		register_setting($this->slug, Brave_Firepress::SETTING_ARRAY_STYLE);
@@ -200,12 +211,14 @@ post_content_filtered";
 			$this->add_settings_field(Brave_Firepress::SETTING_ACF_OPTION, __('<abbr title="Advanced Custom Fields">ACF</abbr> Fields', 'brave-firepress'), array('type' =>'select', 'choices'=>array('key'=>'Save ACF fields into the \'fields\' key', 'merge'=>'Merge ACF fields into the main key', 'off'=>'Do not save ACF fields'), 'description' =>__('Choose what happens to ACF fields when they are saved to Firebase.', 'brave-firepress')));
 		}
 
-		$this->add_settings_field(Brave_Firepress::SETTING_FIELD_MAPPINGS, __('Field Mappings', 'brave-firepress'), array('type' =>'keyvalue','choices'=>$postfields, 'default'=>$postfields, 'label' =>__('Enter in what each field should be converted to in the Firebase database: (Leave an entry blank to exclude a specific field)', 'brave-firepress'), 'description'=>__('Leave an entry blank to exclude a specific field','brave-firepress')));
+		$this->add_settings_field(Brave_Firepress::SETTING_POST_FIELD_MAPPINGS, __('Post Field Mappings', 'brave-firepress'), array( 'type' =>'keyvalue', 'choices' =>$postfields, 'default' =>$postfields, 'label' =>__('Enter in what each field should be converted to in the Firebase database: (Leave an entry blank to exclude a specific field)', 'brave-firepress'), 'description' =>__('Leave an entry blank to exclude a specific field','brave-firepress')));
+
+		$this->add_settings_field(Brave_Firepress::SETTING_TERM_FIELD_MAPPINGS, __('Term Field Mappings', 'brave-firepress'), array( 'type' =>'keyvalue', 'choices' =>$termfields, 'default' =>$termfields, 'label' =>__('Enter in what each field should be converted to in the Firebase database: (Leave an entry blank to exclude a specific field)', 'brave-firepress'), 'description' =>__('Leave an entry blank to exclude a specific field','brave-firepress')));
 
 
 		// check if the user have submitted the settings
 		// wordpress will add the "settings-updated" $_GET parameter to the url
-		if (isset($_GET['settings-updated']) && $_GET['settings-updated'])
+		if (isset($_GET['settings-updated']) && $_GET['settings-updated'] && ($_GET['page'] == $this->slug))
 		{
 			//Clear the clean setup flag because we've changed settings and dont know yet if they work.
 			$this->plugin->after_settings_changed();
