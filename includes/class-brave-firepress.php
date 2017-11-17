@@ -92,6 +92,11 @@ class Brave_Firepress {
 
 	protected $adminnotice_error = '';
 	protected $adminnotice_success = '';
+	protected $metaoption;
+	protected $termsoption;
+	protected $acfoption;
+	protected $post_map;
+	protected $term_map;
 
 	/**
 	 * Define the core functionality of the plugin.
@@ -126,6 +131,7 @@ class Brave_Firepress {
 		$this->loader->add_action('created_term', $this, 'send_term_to_firebase', 9999, 3);
 		$this->loader->add_action('edited_term', $this, 'send_term_to_firebase', 9999, 3);
 		$this->loader->add_action('delete_term', $this, 'delete_term_from_firebase', 9999, 4);
+		$this->loader->add_action('set_object_terms', $this, 'update_object_terms', 9999, 6);
 
 		$this->loader->add_action('admin_notices', $this, 'admin_notices');
 	}
@@ -289,6 +295,14 @@ class Brave_Firepress {
 		$this->excludetrash = get_option(Brave_Firepress::SETTING_EXCLUDE_TRASH);
 		$this->arraystyle = get_option(Brave_Firepress::SETTING_ARRAY_STYLE);
 
+
+		//Gather all the field names from the FirePress settings:
+		$this->metaoption = get_option(Brave_Firepress::SETTING_META_OPTION, 'key');
+		$this->acfoption = get_option(Brave_Firepress::SETTING_ACF_OPTION, 'key');
+		$this->termsoption = get_option(Brave_Firepress::SETTING_TERMS_OPTION, 'key');
+
+		$this->post_map = get_option(Brave_Firepress::SETTING_POST_FIELD_MAPPINGS, array('fields'=>'fields', 'meta' => 'meta', 'terms'=>'terms'));
+		$this->term_map = get_option(Brave_Firepress::SETTING_TERM_FIELD_MAPPINGS, array());
 
 		if (!is_array($this->posttypestosave)) $this->posttypestosave = array();
 		if (!is_array($this->taxonomiestosave)) $this->taxonomiestosave = array();
@@ -554,7 +568,7 @@ class Brave_Firepress {
 		$key = get_post_meta($postid, Brave_Firepress::CUSTOM_FIELD_POST_FIREBASE_KEY, true);
 		$this->log("get_post_firebasekey: Key is ".$key);
 
-		if ($createifdoesntexist && empty($key))
+		if ($createifdoesntexist && (empty($key) || false == $key))
 		{
 			$this->log("Key doesnt exist! So I'm creating a new one.");
 			$key = $this->create_post_firebasekey($postid);
@@ -572,11 +586,11 @@ class Brave_Firepress {
 		}
 
 		$key = get_term_meta($termid, Brave_Firepress::CUSTOM_FIELD_POST_FIREBASE_KEY, true);
-		$this->log("get_term_firebasekey: Key is ".$key);
+		//$this->log("get_term_firebasekey: Key is ".$key);
 
-		if ($createifdoesntexist && empty($key))
+		if ($createifdoesntexist && (empty($key) || false == $key))
 		{
-			$this->log("Key doesnt exist! So I'm creating a new one.");
+			$this->log("get_term_firebasekey: Key doesnt exist! So I'm creating a new one.");
 			$key = $this->create_term_firebasekey($termid, $taxonomy);
 		}
 
@@ -584,46 +598,45 @@ class Brave_Firepress {
 	}
 
 
+	/**
+	 * Converts a Post ID into a Firebase Key - 9 times out of 10 this is just the Post ID again, but there is also an option to modify the post's key.
+	 *
+	 * @param int|WP_Post $postid
+	 *
+	 * @return string|boolean
+	 */
 	public function create_post_firebasekey($postid)
 	{
 
-		$keyfield = $this->keyfield;
-
-		$post = get_post($postid, ARRAY_A);
-
-		if (!$post) return '';
-
-		$posttype = $post['post_type'];
-
-		$key = (isset($post[$keyfield]) ? $post[$keyfield] : '');
-
-		/*
-
-		**** Removed this logic. All keys will be henceforce identified by their wordpress post IDs or the overwritten value. ****
-
-		//Get the keyfield for this post. This is usually the option set up in the FirePress settings page, but can be overwritten by the bfp_post_keyfield filter.
-		$keyfield = apply_filters("bfp_post_keyfield", $keyfield, $postid, $posttype);
-		//If the key field is post_name then do post_name specific logic:
-		if ($keyfield == "post_name")
+		if ($postid instanceof WP_Post)
 		{
-			//If the firebase db indexes posts by their slugs, then remove any potential "__trashed" suffixes that Wordpress adds when a post is trashed so that we can reference the correct key in the Firebase DB.
-			$key = preg_replace("/__trashed$/", "", $key);
+			$posttype = $postid->post_type;
+			$postid = $postid->ID;
 		}
-		*/
+		else
+		{
+			$post = get_post($postid, ARRAY_A);
 
-		$key = apply_filters("bfp_post_key", $key, $postid, $posttype);
+			if (!$post) return false;
+
+			$posttype = $post['post_type'];
+		}
+
+
+		$key = apply_filters("bfp_post_key", md5($postid), $postid, $posttype);
+
+		if (empty($key)) return false;
 
 		update_post_meta($postid, Brave_Firepress::CUSTOM_FIELD_POST_FIREBASE_KEY, $key);
-		//$this->log("create_post_firebasekey: Adding key ".$key." to post id ".$postid);
-		//$this->log("create_post_firebasekey: Read back key is = ".$this->get_post_firebasekey($postid, false));
-
 		return $key;
 	}
 
 
 	public function create_term_firebasekey($termid, $taxonomy)
 	{
-		$key = apply_filters("bfp_term_key", $termid, $taxonomy);
+		$key = apply_filters("bfp_term_key", md5($termid.' '.$taxonomy), $termid, $taxonomy);
+
+		if (empty($key)) return false;
 
 		update_term_meta($termid, Brave_Firepress::CUSTOM_FIELD_POST_FIREBASE_KEY, $key);
 		//$this->log("create_post_firebasekey: Adding key ".$key." to post id ".$postid);
@@ -641,7 +654,7 @@ class Brave_Firepress {
 	{
 		if ($postid == 0)
 		{
-			return '';
+			return false;
 		}
 
 		if (is_object($postid) && $postid instanceof WP_Post)
@@ -656,10 +669,35 @@ class Brave_Firepress {
 			{
 				$arr[$key] = $this->convert_postid_to_firebasepostid($pid);
 			}
-			return $arr;
+			return $this->prepare_array($arr);
 		}
 
 		return $this->get_post_firebasekey($postid, true); //array('id'=>$postid, 'slug'=> $postid > 0 ? get_post_field('post_name', $postid, 'raw') : false, 'title'=> get_the_title($postid));
+	}
+
+	protected function convert_termid_to_firebasetermid($termid, $taxonomy)
+	{
+		if ($termid == 0)
+		{
+			return false;
+		}
+
+		if (is_object($termid))
+		{
+			return $this->convert_termid_to_firebasetermid($termid->term_id, $taxonomy);
+		}
+
+		if (is_array($termid))
+		{
+			$arr = array();
+			foreach ($termid as $key=>$tid)
+			{
+				$arr[$key] = $this->convert_termid_to_firebasetermid($tid, $taxonomy);
+			}
+			return $this->prepare_array($arr);
+		}
+
+		return $this->get_term_firebasekey($termid, $taxonomy, true); //array('id'=>$postid, 'slug'=> $postid > 0 ? get_post_field('post_name', $postid, 'raw') : false, 'title'=> get_the_title($postid));
 	}
 
 
@@ -701,6 +739,7 @@ class Brave_Firepress {
 
 		//Get the FireBase key under which we are going to store this post in Firebase:
 		$key = $this->create_post_firebasekey($postid);
+		if ($key == false) return false;
 
 		if (in_array($thisdata['post_status'],  array('draft','auto-draft', 'pending', 'inherit', 'trash')))
 		{
@@ -713,19 +752,7 @@ class Brave_Firepress {
 		}
 
 
-
-
-
-		//Gather all the field names from the FirePress settings:
-
-
-
-		$metaoption = get_option(Brave_Firepress::SETTING_META_OPTION, 'key');
-		$acfoption = get_option(Brave_Firepress::SETTING_ACF_OPTION, 'key');
-		$termsoption = get_option(Brave_Firepress::SETTING_TERMS_OPTION, 'key');
-
-		$map = get_option(Brave_Firepress::SETTING_POST_FIELD_MAPPINGS, array());
-
+		$map = $this->post_map;
 
 
 		$thisdata['post_author'] = intval($thisdata['post_author']);
@@ -783,7 +810,7 @@ class Brave_Firepress {
 		//# Meta Data Storing:
 
 		$metadata = array();
-		if ($metaoption != 'off' || ($acfoption != 'off' && is_plugin_active('advanced-custom-fields/acf.php')))
+		if ($this->metaoption != 'off' || ($this->acfoption != 'off' && is_plugin_active('advanced-custom-fields/acf.php')))
 		{
 
 			$excludedmetafields = explode(PHP_EOL, get_option(Brave_Firepress::SETTING_EXCLUDED_POST_META_FIELDS, ''));
@@ -801,7 +828,7 @@ class Brave_Firepress {
 		}
 
 
-		if ($acfoption != 'off' && is_plugin_active('advanced-custom-fields/acf.php'))
+		if ($this->acfoption != 'off' && is_plugin_active('advanced-custom-fields/acf.php'))
 		{
 			//ACF Support:
 			$fields = get_field_objects($postid, false);
@@ -826,7 +853,7 @@ class Brave_Firepress {
 							break;
 
 						case 'taxonomy':
-							$fielddata[$fieldname] = $this->get_term_firebasekey($field['value'], $field['taxonomy']);
+							$fielddata[$fieldname] = $this->convert_termid_to_firebasetermid($field['value'], $field['taxonomy']);
 							break;
 
 						case 'file':
@@ -847,7 +874,7 @@ class Brave_Firepress {
 
 
 
-				if ($acfoption == 'merge')
+				if ($this->acfoption == 'merge')
 				{
 					//Merge the meta data directly into the key:
 					$thisdata = array_merge($thisdata, $fielddata);
@@ -861,9 +888,9 @@ class Brave_Firepress {
 
 		}
 
-		if ($metaoption != 'off')
+		if ($this->metaoption != 'off')
 		{
-			if ($metaoption == 'merge')
+			if ($this->metaoption == 'merge')
 			{
 				//Merge the meta data directly into the key:
 				$thisdata = array_merge($thisdata, $metadata);
@@ -876,8 +903,7 @@ class Brave_Firepress {
 		}
 
 
-
-		if ($termsoption != 'off')
+		if ($this->termsoption != 'off')
 		{
 			//Store this post's taxonomy terms
 
@@ -902,7 +928,7 @@ class Brave_Firepress {
 
 			}
 
-			if ($termsoption == 'merge')
+			if ($this->termsoption == 'merge')
 			{
 				//Merge the meta data directly into the key:
 				$thisdata = array_merge($thisdata, $termsdata);
@@ -1066,6 +1092,10 @@ class Brave_Firepress {
 		if ($thisdata['parent'] > 0)
 		{
 			$thisdata['parent'] = $this->get_term_firebasekey($thisdata['parent'], $taxonomy, true);
+		}
+		else
+		{
+			$thisdata['parent'] = false;
 		}
 
 
@@ -1447,9 +1477,11 @@ class Brave_Firepress {
 	 *
 	 * @param array $arr
 	 *
-	 * @return array
+	 * @return array|false
 	 */
 	protected function prepare_array($arr) {
+
+		if (count($arr) == 0) return false;
 
 		if ($this->arraystyle == 'keyed')
 		{
@@ -1478,6 +1510,55 @@ class Brave_Firepress {
 		{
 			return $arr;
 		}
+	}
+
+
+	public function update_object_terms($object_id, $terms, $tt_ids, $taxonomy, $append, $old_tt_ids)
+	{
+		$post = get_post($object_id);
+		if (!$post instanceof WP_Post)
+		{
+			//This isnt a post we're looking at.
+			return;
+		}
+
+		//Check that we want to save this type of post to Firebase.
+		if (!in_array($post->post_type, $this->posttypestosave)) return;
+
+		if ($this->termsoption != 'off')
+		{
+			$postkey = $this->create_post_firebasekey($post);
+			if ($postkey == false) return;
+
+			$postpath = $this->get_post_database_path($post->post_type, $postkey).'/';
+
+			//Store this post's taxonomy terms for this taxonomy
+
+			$termkeys = array();
+			foreach ($terms as $term)
+			{
+				$termkeys[] = $this->get_term_firebasekey($term, $taxonomy);
+			}
+			$termkeys = $this->prepare_array($termkeys);
+
+			if ($this->termsoption == 'merge')
+			{
+				//Merge the meta data directly into the post's key:
+				$path =  $postpath.$taxonomy;
+
+			}
+			else
+			{
+				//Create a subkey:
+				$path = $postpath.$this->post_map['terms'].'/'.$taxonomy;
+			}
+
+			$this->log("Update Object Terms: Wrote to post id ".$object_id, array('path'=>$path, 'termkeys'=>$termkeys));
+			$this->firebase->set($termkeys, $path);
+
+		}
+
+
 	}
 
 }
